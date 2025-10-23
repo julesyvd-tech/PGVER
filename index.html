@@ -3,425 +3,248 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>PGVER — CGE</title>
+<title>Paint + Glue — CGE Fusion</title>
 <style>
   :root{
-    --bg-deep-1: #05020a;
-    --bg-deep-2: #06112a;
-    --bg-deep-3: #2b0038;
-    --matrix-green: #00ff66;
-    --accent-cyan: rgba(0,255,234,0.10);
-    --accent-magenta: rgba(255,45,149,0.08);
-    --tv-glow: rgba(0,255,102,0.06);
-    --ui-shadow-cyan: rgba(0,255,234,0.22);
-    --ui-shadow-mag: rgba(255,45,149,0.16);
+    --bg1:#000;
+    --bg2:#041226;
+    --bg3:#2b0038;
+    --matrix-green:#00ff66;
+    --tv-glow:rgba(0,255,102,0.06);
   }
+
   html,body{
     height:100%;
     margin:0;
-    background: linear-gradient(180deg, var(--bg-deep-1) 0%, var(--bg-deep-2) 28%, var(--bg-deep-3) 100%);
-    overflow-x:hidden;
-    font-family: "VT323", monospace, "Courier New", monospace;
+    background:linear-gradient(180deg,var(--bg1) 0%,var(--bg2) 35%,var(--bg3) 100%);
+    overflow:hidden;
+    font-family:'VT323',monospace,Courier;
     color:var(--matrix-green);
     -webkit-font-smoothing:antialiased;
-    -moz-osx-font-smoothing:grayscale;
   }
 
-  /* layout (keeps original page composition) */
-  .container {
-    max-width:1100px;
-    margin: 48px auto;
-    padding: 32px;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    gap:28px;
-    position:relative;
-    z-index:6;
-  }
-  header{ width:100%; display:flex; justify-content:space-between; align-items:center; gap:12px; }
-  .brand { font-size:20px; letter-spacing:1px; color:var(--matrix-green); }
-  .top-row{ width:100%; display:flex; justify-content:center; align-items:center; gap:40px; }
-
-  /* icon area (restores original look) */
-  .icon-row{ display:flex; gap:120px; align-items:flex-start; justify-content:center; margin-top:22px; }
+  .wrap{position:relative;z-index:2;min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:28px;padding:40px}
+  .icon-container{display:flex;gap:120px;align-items:center;justify-content:center;z-index:6}
   button.icon-btn{
-    width:160px; height:190px; background:transparent; border:0; cursor:pointer;
-    position:relative; padding:6px;
-    transition: transform .12s ease, filter .18s ease;
-    -webkit-tap-highlight-color: transparent;
+    width:140px;height:180px;display:block;position:relative;cursor:pointer;background:transparent;border:none;padding:0;
+    filter:drop-shadow(2px 2px 2px rgba(255,0,150,0.3)) drop-shadow(-2px -2px 2px rgba(0,255,255,0.3));
+    transition:filter .25s ease,transform .15s ease;
   }
-  button.icon-btn:active{ transform: translateY(1px) scale(0.995); }
-  .icon-svg{ width:100%; height:100%; overflow:visible; display:block; }
-  .shape-path{ fill:none; stroke:#fff; stroke-width:2; stroke-linejoin:round; stroke-linecap:round; }
-  .shape-text{ fill:#fff; font-weight:700; font-family:Courier, monospace; font-size:16px; text-anchor:middle; dominant-baseline:middle; }
-
-  /* cyan-magenta stereo edges (3D) applied to icons & worm */
-  .stereo-left { filter: drop-shadow(-8px 0 6px rgba(0,0,255,0.18)); transform-origin:center; mix-blend-mode:screen; opacity:0.98; }
-  .stereo-right { filter: drop-shadow(8px 0 6px rgba(255,0,80,0.16)); transform-origin:center; mix-blend-mode:screen; opacity:0.98; }
-
-  /* subtle 3D glow wrapper for icons */
-  .icon-layer { position:absolute; inset:0; pointer-events:none; z-index:2; }
-
-  /* tv (center-left layout similar to PaintGlue-Tech but fixed at bottom center + retains PGVER behavior) */
-  .tv-holder {
-    position: fixed;
-    left: 50%;
-    bottom: 28px;
-    transform: translateX(-50%);
-    width: 380px;
-    height: 220px;
-    z-index:50;
-    border-radius:12px;
-    overflow:hidden;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.6), 0 0 40px var(--tv-glow);
-    background: #000;
-    border: 1px solid rgba(255,255,255,0.04);
-    -webkit-backface-visibility: hidden;
+  button.icon-btn:hover{
+    filter:drop-shadow(4px 4px 4px rgba(255,0,150,0.4)) drop-shadow(-4px -4px 4px rgba(0,255,255,0.4));
+    transform:translateY(-3px) scale(1.04);
   }
-  .tv-video{ width:100%; height:100%; object-fit:cover; display:block; filter: contrast(1.02) saturate(1.06) }
-  .tv-frame { position:absolute; inset:-10px; pointer-events:none; border-radius:14px; mix-blend-mode:screen; }
-  .tv-glow { position:absolute; inset:-24px; border-radius:20px; filter:blur(12px); background: radial-gradient(ellipse at 50% 0%, rgba(0,255,234,0.04), transparent 8%), linear-gradient(90deg, rgba(0,255,234,0.01), rgba(255,45,149,0.01)); }
 
-  /* tv-specific noise (stronger than background) */
-  .tv-noise { position:absolute; inset:0; pointer-events:none; mix-blend-mode:overlay; opacity:0.16; background-image: radial-gradient(circle, rgba(255,255,255,0.02) 1px, transparent 1px); background-size:3px 3px; animation: tvNoise .12s steps(2) infinite; }
-  @keyframes tvNoise { from{ background-position:0 0 } to { background-position:6px 6px } }
-  .tv-scan { position:absolute; inset:0; pointer-events:none; mix-blend-mode:overlay; background: repeating-linear-gradient(to bottom, rgba(0,0,0,0.06) 0px, rgba(0,0,0,0.04) 1px, transparent 2px); opacity:0.28; animation: tvScan 3.6s linear infinite; }
-  @keyframes tvScan { 0%{ background-position:0 0 } 100%{ background-position:0 8px } }
+  svg.icon-svg{width:100%;height:100%;position:relative;z-index:6;overflow:visible}
+  .shape-path{fill:none;stroke:#fff;stroke-width:2.2;stroke-linejoin:round;stroke-linecap:round}
+  .shape-text{fill:#fff;font-weight:700;font-family:Courier,monospace;font-size:18px;dominant-baseline:middle;text-anchor:middle}
+  .outline-left{stroke:rgba(0,0,255,0.9);stroke-width:2.2;filter:blur(.6px);mix-blend-mode:screen;animation:oscLeft 2.6s infinite ease-in-out}
+  .outline-right{stroke:rgba(255,59,59,0.9);stroke-width:2.2;filter:blur(.6px);mix-blend-mode:screen;animation:oscRight 1.8s infinite ease-in-out}
+  @keyframes oscLeft{0%{transform:translateX(-3px)}50%{transform:translateX(2px)}100%{transform:translateX(-3px)}}
+  @keyframes oscRight{0%{transform:translateX(3px)}50%{transform:translateX(-2px)}100%{transform:translateX(3px)}}
 
-  /* worm */
-  .worm-wrap{ position: fixed; left:50%; bottom:6px; transform: translateX(-50%); z-index:60; }
-  .worm-btn{ width:22px; height:12px; border-radius:12px; background: linear-gradient(90deg,#101010,#232323); border:1px solid rgba(255,255,255,0.06); cursor:pointer; box-shadow: 2px 2px 6px var(--ui-shadow-mag), -2px -2px 6px var(--ui-shadow-cyan); transition: transform .12s ease, box-shadow .12s ease; }
-  .worm-btn:hover{ transform: translateY(-2px) scale(1.06); box-shadow: 3px 3px 8px var(--ui-shadow-mag), -3px -3px 8px var(--ui-shadow-cyan); }
+  #stars,#staticNoise,#scanlines,#flickerBars{position:fixed;inset:0;z-index:1;pointer-events:none}
+  .star{position:absolute;width:2px;height:2px;border-radius:50%;background:#fff;opacity:0.7;filter:drop-shadow(0 0 6px rgba(255,255,255,0.06));}
 
-  /* subtle background layers (guaranteed to render) */
-  #stars, #staticNoise, #scanlines, #flickerBars { position: fixed; inset:0; pointer-events:none; z-index:3; }
-  #stars .star { position:absolute; width:2px; height:2px; border-radius:50%; background: #fff; opacity:0.7; filter: drop-shadow(0 0 6px rgba(255,255,255,0.06)); }
-  #staticNoise { mix-blend-mode: overlay; opacity:0.18; background-image: radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px); background-size:4px 4px; animation: bgNoise .12s steps(2) infinite; }
-  @keyframes bgNoise { from{ background-position:0 0 } to{ background-position:8px 8px } }
-  #scanlines { mix-blend-mode: overlay; opacity:0.12; background: repeating-linear-gradient(to bottom, rgba(0,0,0,0.07) 0px, rgba(0,0,0,0.05) 1px, transparent 2px); animation: bgScan 4.4s linear infinite; }
-  @keyframes bgScan { 0%{ background-position:0 0 } 100%{ background-position:0 8px } }
-  #flickerBars { mix-blend-mode: overlay; opacity:0.12; background: linear-gradient(0deg, rgba(255,255,255,0.02) 50%, transparent 50%); animation: bgFlicker 2s steps(2) infinite; }
-  @keyframes bgFlicker { 0%,100%{ opacity:0.1 } 50%{ opacity:0.18 } }
+  #staticNoise{background-image:radial-gradient(circle,rgba(255,255,255,0.05) 1px,transparent 1px);background-size:3px 3px;mix-blend-mode:overlay;animation:noiseShift .08s steps(2) infinite;opacity:0.2;}
+  @keyframes noiseShift{from{background-position:0 0;}to{background-position:6px 6px;}}
+  #scanlines{background:repeating-linear-gradient(to bottom,rgba(0,0,0,0.1) 0px,rgba(0,0,0,0.08) 1px,transparent 2px);mix-blend-mode:overlay;opacity:0.2;animation:scanMove 4s linear infinite;}
+  @keyframes scanMove{0%{background-position:0 0;}100%{background-position:0 8px;}}
+  #flickerBars{background:linear-gradient(0deg,rgba(255,255,255,0.02) 50%,transparent 50%);mix-blend-mode:overlay;animation:flickerFlash 2s infinite steps(2);opacity:0.15;}
+  @keyframes flickerFlash{0%,100%{opacity:0.12;}50%{opacity:0.18;}}
 
-  /* click2play */
-  #click2play { position: fixed; z-index: 100; left: 50%; top: 50%; transform: translate(-50%,-50%); font-size:32px; color:var(--matrix-green); text-shadow: 0 0 10px rgba(0,255,102,0.12); pointer-events:none; mix-blend-mode:screen; }
-
-  /* small screens */
-  @media(max-width:760px){
-    .icon-row { gap:36px; flex-direction:column; align-items:center; }
-    .tv-holder{ width:300px; height:180px; bottom:88px; }
-    .container{ padding:18px; }
-  }
+  .tv-container{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);width:220px;height:150px;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,0.05);box-shadow:0 0 10px var(--tv-glow),inset 0 0 12px rgba(0,255,150,0.05);background:#000;z-index:5;}
+  .tv-video{width:100%;height:100%;object-fit:cover;filter:contrast(1.1) saturate(1.1) brightness(0.95);}
 </style>
 </head>
 <body>
-
-<!-- background layers -->
+<div id="stars"></div>
 <div id="staticNoise"></div>
 <div id="scanlines"></div>
 <div id="flickerBars"></div>
-<div id="stars"></div>
 
-<!-- top container mimicking paintglue-tech layout -->
-<div class="container">
-  <header>
-    <div class="brand">PGVER — CGE</div>
-    <div class="brand" style="opacity:0.6;font-size:13px">v2</div>
-  </header>
+<div class="wrap">
+  <div class="icon-container">
+    <!-- Paint Button -->
+    <button id="paintBtn" class="icon-btn" aria-label="Paint">
+      <svg class="icon-svg" viewBox="0 0 64 80" preserveAspectRatio="xMidYMid meet">
+        <path class="shape-path outline-left" d="M12 20 q20-20 40 0 v40 h-40z"/>
+        <path class="shape-path outline-right" d="M12 20 q20-20 40 0 v40 h-40z"/>
+        <path class="shape-path" d="M12 20 q20-20 40 0 v40 h-40z"/>
+        <text id="paintText" class="shape-text" x="32" y="50">P</text>
+      </svg>
+    </button>
 
-  <div class="top-row">
-    <div class="icon-row" role="navigation" aria-label="controls">
-      <!-- original P and G icons (text-built) with stereo effect layers applied -->
-      <button id="paintBtn" class="icon-btn" aria-label="Paint">
-        <div class="icon-layer stereo-left" aria-hidden="true">
-          <svg class="icon-svg" viewBox="0 0 64 80"><path class="shape-path" d="M12 20 q20-20 40 0 v40 h-40z"/></svg>
-        </div>
-        <div class="icon-layer stereo-right" aria-hidden="true">
-          <svg class="icon-svg" viewBox="0 0 64 80"><path class="shape-path" d="M12 20 q20-20 40 0 v40 h-40z"/></svg>
-        </div>
-        <!-- visible white text shape (restored classic) -->
-        <svg class="icon-svg" viewBox="0 0 120 160" aria-hidden="false">
-          <text x="60" y="40" text-anchor="middle" class="shape-text" font-size="20">PPPP</text>
-          <text x="60" y="60" text-anchor="middle" class="shape-text" font-size="20">P   P</text>
-          <text x="60" y="80" text-anchor="middle" class="shape-text" font-size="20">PPPP</text>
-          <text x="60" y="100" text-anchor="middle" class="shape-text" font-size="20">P</text>
-          <text x="60" y="120" text-anchor="middle" class="shape-text" font-size="20">P</text>
-          <text x="60" y="140" text-anchor="middle" class="shape-text" font-size="18">PAINT</text>
-        </svg>
-      </button>
-
-      <button id="glueBtn" class="icon-btn" aria-label="Glue">
-        <div class="icon-layer stereo-left" aria-hidden="true">
-          <svg class="icon-svg" viewBox="0 0 64 80"><path class="shape-path" d="M28 4h8v8h-8zM24 12h16v8H24zM20 20h24l2 32H18z"/></svg>
-        </div>
-        <div class="icon-layer stereo-right" aria-hidden="true">
-          <svg class="icon-svg" viewBox="0 0 64 80"><path class="shape-path" d="M28 4h8v8h-8zM24 12h16v8H24zM20 20h24l2 32H18z"/></svg>
-        </div>
-        <svg class="icon-svg" viewBox="0 0 120 160" aria-hidden="false">
-          <text x="60" y="40" text-anchor="middle" class="shape-text" font-size="20">GGGG</text>
-          <text x="60" y="60" text-anchor="middle" class="shape-text" font-size="20">G</text>
-          <text x="60" y="80" text-anchor="middle" class="shape-text" font-size="20">G GG</text>
-          <text x="60" y="100" text-anchor="middle" class="shape-text" font-size="20">G  G</text>
-          <text x="60" y="120" text-anchor="middle" class="shape-text" font-size="20">GGGG</text>
-          <text x="60" y="140" text-anchor="middle" class="shape-text" font-size="18">GLUE</text>
-        </svg>
-      </button>
-    </div>
+    <!-- Glue Button -->
+    <button id="glueBtn" class="icon-btn" aria-label="Glue">
+      <svg class="icon-svg" viewBox="0 0 64 80" preserveAspectRatio="xMidYMid meet">
+        <path class="shape-path outline-left" d="M28 4h8v8h-8zM24 12h16v8H24zM20 20h24l2 32H18z"/>
+        <path class="shape-path outline-right" d="M28 4h8v8h-8zM24 12h16v8H24zM20 20h24l2 32H18z"/>
+        <path class="shape-path" d="M28 4h8v8h-8zM24 12h16v8H24zM20 20h24l2 32H18z"/>
+        <text id="glueText" class="shape-text" x="32" y="66">G</text>
+      </svg>
+    </button>
   </div>
 
-  <!-- some original layout spacing / content area mimic -->
-  <section style="width:100%;display:flex;justify-content:center;align-items:center;padding:28px 10px;">
-    <div style="max-width:820px;color:rgba(255,255,255,0.06);text-align:center;font-size:14px;">
-      <!-- leave this area like the original layout — reserved for your visuals / text -->
-    </div>
-  </section>
+  <div class="tv-container">
+    <video id="tvVideo" class="tv-video" autoplay muted loop playsinline>
+      <source src="MoshUp_0021~2.mp4" type="video/mp4">
+      Your browser does not support video playback.
+    </video>
+  </div>
+
+  <div id="worm" class="worm-btn" title="secret"></div>
 </div>
-
-<!-- cyber-tv (keeps PGVER features) -->
-<div class="tv-holder" id="tvHolder" aria-hidden="false">
-  <div class="tv-glow"></div>
-  <video id="tvVideo" class="tv-video" autoplay muted loop playsinline>
-    <source src="MoshUp_0021~2.mp4" type="video/mp4">
-  </video>
-  <div class="tv-noise"></div>
-  <div class="tv-scan"></div>
-</div>
-
-<div class="worm-wrap" id="wormWrap">
-  <div id="wormBtn" class="worm-btn" title="secret"></div>
-</div>
-
-<!-- click to play hint -->
-<div id="click2play">Click2Play</div>
-
-<!-- audio handled by JS -->
-<audio id="bgm" preload="auto"></audio>
-
 <script>
-/* ---------- Initialization & helpers ---------- */
-const videoFiles = [
-  "MoshUp_0021~2.mp4",
-  "My Movie 51~2.mp4",
-  "My Movie 54.mov",
-  "IMG_3838.MOV"
-];
-const musicFiles = [
-  "BM AM & PM.m4a",
-  "Bleep.m4a",
-  "FB Remix.m4a",
-  "Frtruck.m4a"
-];
+window.onload = () => {
+  const starField = document.getElementById("stars");
+  const paintBtn = document.getElementById("paintBtn");
+  const glueBtn = document.getElementById("glueBtn");
+  const worm = document.getElementById("worm");
+  const tv = document.getElementById("tvVideo");
 
-const tv = document.getElementById('tvVideo');
-const tvHolder = document.getElementById('tvHolder');
-const click2play = document.getElementById('click2play');
-const bgm = document.getElementById('bgm');
-const paintBtn = document.getElementById('paintBtn');
-const glueBtn = document.getElementById('glueBtn');
-const wormBtn = document.getElementById('wormBtn');
-
-/* --------- Starfield + subtle VHS background (guaranteed) ---------- */
-function createStars(count=140){
-  const root = document.getElementById('stars');
-  for(let i=0;i<count;i++){
-    const s = document.createElement('div');
-    s.className = 'star';
-    s.style.left = Math.random()*100 + '%';
-    s.style.top = Math.random()*100 + '%';
-    s.style.opacity = (0.3 + Math.random()*0.7).toFixed(2);
-    s.style.width = (Math.random()*1.8 + 0.6) + 'px';
-    s.style.height = s.style.width;
-    root.appendChild(s);
-    (function(el){
-      setInterval(()=>{
-        if(Math.random() < 0.12) el.style.opacity = (0.2 + Math.random()*0.8).toFixed(2);
-        el.style.left = (parseFloat(el.style.left) + (Math.random()-0.5)*0.5 + 100) % 100 + '%';
-        el.style.top = (parseFloat(el.style.top) + (Math.random()-0.5)*0.4 + 100) % 100 + '%';
-      }, 1600 + Math.random()*2600);
-    })(s);
-  }
-}
-createStars();
-
-/* make click2play wander until first interaction */
-(function wanderClick2Play(){
-  function move(){
-    if(window._firstInteracted) return;
-    const left = (Math.random() < 0.5) ? (Math.random()*22)+'%' : (78 + Math.random()*18)+'%';
-    const top = (Math.random()*60 + 6) + '%';
-    click2play.style.left = left;
-    click2play.style.top = top;
-    setTimeout(move, 1400 + Math.random()*1800);
-  }
-  setTimeout(move, 900);
-})();
-
-/* ---------- Audio playlist that auto-advances (first-click unmute) ---------- */
-let musicIndex = 0;
-bgm.src = musicFiles[musicIndex];
-bgm.loop = false;
-bgm.volume = 0;
-bgm.muted = true;
-bgm.preload = 'auto';
-
-bgm.addEventListener('ended', ()=>{
-  musicIndex = (musicIndex + 1) % musicFiles.length;
-  bgm.src = musicFiles[musicIndex];
-  bgm.play().catch(()=>{});
-});
-function fadeInBgm(){
-  if(window._firstInteracted) return;
-  window._firstInteracted = true;
-  bgm.muted = false;
-  bgm.play().catch(()=>{});
-  let v = 0;
-  const t = setInterval(()=>{
-    v = Math.min(1, v + 0.05);
-    bgm.volume = v;
-    if(v >= 1) clearInterval(t);
-  }, 120);
-  // remove click2play ghost
-  if(click2play){ click2play.style.transition = 'opacity .6s ease'; click2play.style.opacity = 0; setTimeout(()=>click2play.remove(), 700); }
-}
-
-/* require first tap/click to start audio (browser policy) */
-document.addEventListener('click', function firstTap(){
-  fadeInBgm();
-  document.removeEventListener('click', firstTap);
-}, { once:true, passive:true });
-document.addEventListener('touchstart', function firstTouch(){ fadeInBgm(); document.removeEventListener('touchstart', firstTouch); }, { once:true, passive:true });
-
-/* ---------- TV cycling + instant glitch swap ---------- */
-let tvIndex = 0;
-function setTv(index){
-  tvIndex = (index + videoFiles.length) % videoFiles.length;
-  tv.pause();
-  tv.src = videoFiles[tvIndex];
-  tv.load();
-  tv.play().catch(()=>{});
-  // instant visual micro-glitch scale
-  tvHolder.style.transform = 'translateX(-50%) scale(1.02)';
-  setTimeout(()=> tvHolder.style.transform = 'translateX(-50%)', 120);
-}
-tv.addEventListener('ended', ()=>{ tv.play().catch(()=>{}); });
-tvHolder.addEventListener('click', (e)=>{
-  e.stopPropagation();
-  setTv(tvIndex + 1);
-  // briefly intensify tv-noise
-  const n = tvHolder.querySelector('.tv-noise');
-  if(n){ n.style.opacity = 0.32; setTimeout(()=> n.style.opacity = 0.16, 220); }
-});
-
-/* load initial tv */
-setTv(0);
-
-/* ---------- Flash image inside tv every 60s ---------- */
-const flashImage = "PXL_20251023_140822882.jpg";
-function tvFlashOnce(){
-  const img = document.createElement('img');
-  img.src = flashImage;
-  img.style.position = 'absolute';
-  img.style.left = 0; img.style.top = 0;
-  img.style.width = '100%'; img.style.height = '100%';
-  img.style.objectFit = 'cover';
-  img.style.zIndex = 200;
-  img.style.opacity = '0';
-  img.style.transition = 'opacity .18s linear';
-  tvHolder.appendChild(img);
-  requestAnimationFrame(()=> img.style.opacity = 1 );
-  setTimeout(()=> img.style.opacity = 0, 320);
-  setTimeout(()=> img.remove(), 900);
-}
-setInterval(tvFlashOnce, 60000);
-
-/* ---------- Paint / Glue click counters (25 -> jolt) ---------- */
-let paintCount = 0, glueCount = 0;
-function jolt(color){
-  const overlay = document.createElement('div');
-  overlay.style.position='fixed'; overlay.style.inset=0; overlay.style.zIndex=250; overlay.style.pointerEvents='none';
-  overlay.style.background = (color === 'red') ? 'linear-gradient(180deg, rgba(255,40,40,0.22), rgba(255,10,10,0.12))' : 'linear-gradient(180deg, rgba(30,144,255,0.18), rgba(10,30,255,0.12))';
-  overlay.style.opacity = '0.92';
-  document.body.appendChild(overlay);
-  setTimeout(()=> overlay.style.opacity = '0', 160);
-  setTimeout(()=> overlay.remove(), 1600);
-}
-paintBtn.addEventListener('click', ()=>{
-  paintCount++;
-  paintBtn.style.transform = 'translateY(-6px) scale(0.995)';
-  setTimeout(()=> paintBtn.style.transform = '', 140);
-  if(paintCount >= 25){ paintCount = 0; jolt('red'); }
-});
-glueBtn.addEventListener('click', ()=>{
-  glueCount++;
-  glueBtn.style.transform = 'translateY(-6px) scale(0.995)';
-  setTimeout(()=> glueBtn.style.transform = '', 140);
-  if(glueCount >= 25){ glueCount = 0; jolt('blue'); }
-});
-
-/* ---------- Worm egg (29 clicks -> confetti) ---------- */
-let wormClicks = 0;
-wormBtn.addEventListener('click', (e)=>{
-  e.stopPropagation();
-  wormClicks++;
-  wormBtn.style.transform = 'translateY(-3px)';
-  setTimeout(()=> wormBtn.style.transform = '', 120);
-  if(wormClicks >= 29){
-    wormClicks = 0;
-    spawnConfetti(e.clientX || window.innerWidth/2, e.clientY || window.innerHeight - 120);
-  }
-});
-function spawnConfetti(x,y){
-  const root = document.body;
-  const colors = ['#00ff66','#ff2d95','#00d0ff','#ffd400'];
-  for(let i=0;i<32;i++){
-    const el = document.createElement('div');
-    el.className = 'confetti';
-    el.style.position = 'fixed';
-    el.style.left = (x + (Math.random()-0.5)*160) + 'px';
-    el.style.top = (y + (Math.random()-0.5)*40) + 'px';
-    el.style.width = (4 + Math.random()*8)+'px';
-    el.style.height = el.style.width;
-    el.style.background = colors[Math.floor(Math.random()*colors.length)];
-    el.style.zIndex = 9999;
-    el.style.pointerEvents = 'none';
-    root.appendChild(el);
-    const dx = (Math.random()-0.5)*360;
-    const dy = -120 - Math.random()*320;
-    el.animate([{ transform: 'translateY(0) rotate(0)', opacity:1 }, { transform: `translate(${dx}px, ${dy}px) rotate(${Math.random()*720-360}deg)`, opacity:0 }], { duration: 1000+Math.random()*800, easing:'cubic-bezier(.2,.8,.2,1)' });
-    setTimeout(()=> el.remove(), 1400);
-  }
-}
-
-/* ---------- subtle independent flicker for icons (like old version) ---------- */
-setInterval(()=>{
-  [paintBtn, glueBtn].forEach(btn=>{
-    if(Math.random() < 0.26){
-      btn.style.opacity = 0.6 + Math.random()*0.5;
-      setTimeout(()=> btn.style.opacity = 1, 220 + Math.random()*320);
+  /* === STARS === */
+  function makeStars(count=160){
+    for(let i=0;i<count;i++){
+      const s=document.createElement("div");
+      s.className="star";
+      s.style.left=Math.random()*100+"%";
+      s.style.top=Math.random()*100+"%";
+      s.style.opacity=Math.random()*0.6+0.2;
+      starField.appendChild(s);
     }
-  });
-}, 420);
+  }
+  makeStars();
+  function twinkle(){
+    document.querySelectorAll(".star").forEach(star=>{
+      if(Math.random()<0.05){
+        star.style.opacity=Math.random()*0.8+0.2;
+      }
+    });
+  }
+  setInterval(twinkle,400);
 
-/* ---------- micro glitch pulse (3D stereo highlight) ---------- */
-setInterval(()=>{
-  [paintBtn, glueBtn, wormBtn].forEach(el=>{
-    if(Math.random() < 0.15){
-      el.style.boxShadow = `3px 3px 8px ${getComputedStyle(document.documentElement).getPropertyValue('--ui-shadow-mag')}, -3px -3px 8px ${getComputedStyle(document.documentElement).getPropertyValue('--ui-shadow-cyan')}`;
-      setTimeout(()=> el.style.boxShadow = '', 180);
+  /* === PAINT / GLUE COLOR JOLTS === */
+  let paintClicks=0, glueClicks=0;
+  function joltColor(color){
+    const overlay=document.createElement("div");
+    overlay.style.position="fixed";
+    overlay.style.inset="0";
+    overlay.style.zIndex="99";
+    overlay.style.background=color==="red"
+      ? "rgba(255,0,60,0.2)"
+      : "rgba(60,120,255,0.25)";
+    overlay.style.transition="opacity .25s ease";
+    overlay.style.mixBlendMode="screen";
+    document.body.appendChild(overlay);
+    setTimeout(()=>overlay.style.opacity="0",200);
+    setTimeout(()=>overlay.remove(),600);
+  }
+  paintBtn.addEventListener("click",()=>{
+    paintClicks++;
+    if(paintClicks>=25){ joltColor("red"); paintClicks=0; }
+  });
+  glueBtn.addEventListener("click",()=>{
+    glueClicks++;
+    if(glueClicks>=25){ joltColor("blue"); glueClicks=0; }
+  });
+
+  /* === WORM CONFETTI === */
+  let wormClicks=0;
+  worm.addEventListener("click",()=>{
+    wormClicks++;
+    if(wormClicks>=29){ triggerConfetti(); wormClicks=0; }
+  });
+  function triggerConfetti(){
+    for(let i=0;i<50;i++){
+      const c=document.createElement("div");
+      c.style.position="fixed";
+      c.style.left=Math.random()*100+"%";
+      c.style.top=Math.random()*100+"%";
+      c.style.width="4px";
+      c.style.height="4px";
+      c.style.background=`hsl(${Math.random()*360},100%,70%)`;
+      c.style.zIndex="999";
+      c.style.pointerEvents="none";
+      document.body.appendChild(c);
+      setTimeout(()=>{
+        c.style.transition="transform 1s ease, opacity 1s ease";
+        c.style.transform=`translateY(${100+Math.random()*200}px) rotate(${Math.random()*360}deg)`;
+        c.style.opacity=0;
+      },50);
+      setTimeout(()=>c.remove(),1200);
     }
+  }
+
+  /* === SUBTLE GLITCH PULSE === */
+  function glitchPulse(){
+    [paintBtn,glueBtn,worm].forEach(el=>{
+      if(Math.random()<0.15){
+        el.style.filter="drop-shadow(3px 3px 3px rgba(255,0,150,0.4)) drop-shadow(-3px -3px 3px rgba(0,255,255,0.4))";
+        setTimeout(()=>{
+          el.style.filter="drop-shadow(2px 2px 2px rgba(255,0,150,0.3)) drop-shadow(-2px -2px 2px rgba(0,255,255,0.3))";
+        },180);
+      }
+    });
+  }
+  setInterval(glitchPulse,800);
+    /* === TV VIDEO CYCLER + FLASH IMAGE === */
+  const videoFiles=[
+    "MoshUp_0021~2.mp4",
+    "My Movie 51~2.mp4",
+    "My Movie 54.mov",
+    "IMG_3838.MOV"
+  ];
+  let currentVideo=0;
+  function cycleVideo(){
+    currentVideo=(currentVideo+1)%videoFiles.length;
+    tv.src=videoFiles[currentVideo];
+    tv.play();
+  }
+  tv.addEventListener("click",cycleVideo);
+
+  /* flash image on TV every 60s */
+  const flashImg="PXL_20251023_140822882.jpg";
+  setInterval(()=>{
+    const img=document.createElement("img");
+    img.src=flashImg;
+    img.style.position="absolute";
+    img.style.left="0";img.style.top="0";
+    img.style.width="100%";img.style.height="100%";
+    img.style.objectFit="cover";
+    img.style.zIndex="10";
+    img.style.opacity="0";
+    img.style.transition="opacity .4s ease";
+    tv.parentElement.appendChild(img);
+    requestAnimationFrame(()=>img.style.opacity="1");
+    setTimeout(()=>img.style.opacity="0",400);
+    setTimeout(()=>img.remove(),900);
+  },60000);
+
+  /* === MUSIC LOOP === */
+  const tracks=[
+    "BM AM & PM.m4a",
+    "Bleep.m4a",
+    "FB Remix.m4a",
+    "Frtruck.m4a"
+  ];
+  let currentTrack=0;
+  const audio=new Audio(tracks[currentTrack]);
+  audio.volume=0.9;
+  audio.loop=false;
+  audio.autoplay=true;
+  audio.addEventListener("ended",()=>{
+    currentTrack=(currentTrack+1)%tracks.length;
+    audio.src=tracks[currentTrack];
+    audio.play();
   });
-}, 900);
+  setTimeout(()=>audio.play(),1000);
 
-/* ---------- keep audio playing after first interaction; ensure clicks don't pause ---------- */
-document.addEventListener('visibilitychange', ()=> { if(!document.hidden){ if(bgm.paused) bgm.play().catch(()=>{}); } });
-
-/* ---------- ensure tv video muted & autoplay ---------- */
-tv.muted = true;
-tv.play().catch(()=>{});
-
-/* ---------- final safety: prevent accidental long-press selection on mobile ---------- */
-document.addEventListener('touchstart', ()=>{}, {passive:true});
+  /* prevent pause on touch */
+  document.body.addEventListener("click",()=>{
+    if(audio.paused) audio.play();
+  });
+  }; /* end window.onload */
 </script>
 </body>
 </html>
