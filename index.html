@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>PGVER — CGE</title>
+<style>
+  :root{
+    --bg1:#000;
+    --bg2:#041226;
+    --bg3:#2b0038;
+    --matrix-green:#00ff66;
+    --tv-glow: rgba(0,255,102,0.06);
+  }
+  html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg1) 0%,var(--bg2)35%,var(--bg3)100%);overflow:hidden;font-family:monospace;color:var(--matrix-green);-webkit-font-smoothing:antialiased}
+  .wrap{position:relative;z-index:2;min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;padding:40px;gap:28px}
+  .icon-container{display:flex;gap:120px;align-items:center;justify-content:center;z-index:6}
+  button.icon-btn{width:140px;height:180px;display:block;position:relative;cursor:pointer;background:transparent;border:none;padding:0}
+  svg.icon-svg{width:100%;height:100%;position:relative;z-index:6;overflow:visible}
+  .shape-path{fill:none;stroke:#fff;stroke-width:2.2;stroke-linejoin:round;stroke-linecap:round}
+  .shape-text{fill:#fff;font-weight:700;font-family:Courier, monospace;font-size:18px;dominant-baseline:middle;text-anchor:middle}
+
+  /* starfield */
+  #stars{position:fixed;inset:0;z-index:1;pointer-events:none;overflow:hidden}
+  .star{position:absolute;width:2px;height:2px;border-radius:50%;background:#fff;opacity:0.85;filter:drop-shadow(0 0 6px rgba(255,255,255,0.06));}
+  .star.tiny{width:1px;height:1px;opacity:0.7;filter:none}
+
+  /* click2play */
+  #click2play{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:34px;color:var(--matrix-green);text-shadow:0 0 8px var(--matrix-green),0 0 20px rgba(0,255,102,0.08);opacity:.86;z-index:200;pointer-events:none;user-select:none;mix-blend-mode:screen}
+  .click2play-crt{font-family:monospace;letter-spacing:1px}
+  @keyframes clickGlitch{0%{opacity:1;transform:translate(-50%,-50%) skewX(0deg)}50%{opacity:.5;transform:translate(-50%,-52%) skewX(-6deg) filter:blur(2px)}100%{opacity:0;transform:translate(-50%,-56%) skewX(12deg)}}
+
+  /* cursor */
+  .cursor{position:fixed;left:0;top:0;width:140px;height:140px;border-radius:50%;pointer-events:none;z-index:100;mix-blend-mode:screen;transform:translate(-50%,-50%);transition:transform .05s linear;filter:blur(6px)}
+  .cursor .ring{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 35% 30%, rgba(0,255,234,0.45), transparent 20%), radial-gradient(circle at 70% 70%, rgba(255,45,149,0.25), transparent 18%);animation:ringJitter .9s infinite}
+  .cursor .noise{position:absolute;inset:10px;border-radius:50%;background-image:radial-gradient(circle, rgba(255,255,255,0.06), transparent 2px);mix-blend-mode:overlay;opacity:0.9;animation:noiseFloater .06s steps(2) infinite}
+  .cursor .glitchSlices{position:absolute;inset:0;border-radius:50%;overflow:hidden;mix-blend-mode:screen}
+
+  /* tv */
+  .cyber-tv{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);width:360px;height:210px;z-index:80;border-radius:10px;overflow:hidden;box-shadow:0 8px 40px var(--tv-glow);backdrop-filter: blur(2px);pointer-events:auto}
+  .cyber-tv video{width:100%;height:100%;object-fit:cover;display:block;filter:contrast(1.02) saturate(1.05)}
+  .tv-glow{position:absolute;inset:-18px;border-radius:12px;background:radial-gradient(ellipse at 50% 10%, rgba(0,255,102,0.06), transparent 20%), linear-gradient(90deg, rgba(0,255,234,0.02), rgba(255,45,149,0.02));filter:blur(10px);opacity:0.95;pointer-events:none}
+  .tv-reflect{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;background:linear-gradient(0deg, rgba(255,255,255,0.02), transparent 25%);mix-blend-mode:overlay;opacity:0.6}
+
+  /* TV VHS noise (separate pattern) */
+  .tv-noise{position:absolute;inset:0;pointer-events:none;mix-blend-mode:overlay;opacity:0.14;background-image:linear-gradient( rgba(255,255,255,0.02), rgba(255,255,255,0.02) );animation:tvStatic 0.12s steps(2) infinite}
+  .tv-scan{position:absolute;inset:0;pointer-events:none;mix-blend-mode:overlay;background:repeating-linear-gradient(to bottom, rgba(0,0,0,0.06) 0px, rgba(0,0,0,0.04) 1px, transparent 2px);opacity:0.28;animation:tvScan 3.6s linear infinite}
+  @keyframes tvStatic{from{background-position:0 0}to{background-position:100% 100%}}
+  @keyframes tvScan{0%{background-position:0 0}100%{background-position:0 8px}}
+
+  /* worm and confetti */
+  .worm-wrap{position:fixed;left:50%;bottom:4px;transform:translateX(-50%);z-index:85;pointer-events:auto}
+  .worm-btn{width:22px;height:12px;display:block;border-radius:12px;background:linear-gradient(90deg,#222,#111);border:1px solid rgba(255,255,255,0.06);cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.6)}
+  .confetti-piece{position:fixed;width:8px;height:8px;z-index:200;pointer-events:none;opacity:0.95}
+
+  /* flash overlays */
+  .flash-overlay{position:fixed;inset:0;z-index:90;pointer-events:none;mix-blend-mode:screen;opacity:0;transition:opacity .12s linear}
+  .flash-red{background:linear-gradient(180deg, rgba(255,40,40,0.22), rgba(255,10,10,0.12));}
+  .flash-blue{background:linear-gradient(180deg, rgba(30,144,255,0.18), rgba(10,30,255,0.12));}
+  .burst{position:fixed;inset:0;z-index:91;pointer-events:none;opacity:0;background:repeating-linear-gradient(0deg, rgba(255,255,255,0.06) 0 1px, transparent 2px);mix-blend-mode:overlay;transition:opacity .08s linear}
+
+  /* inverse */
+  body.inverse{background:linear-gradient(180deg,#f6f9ff 0%,#e6f3ff 35%,#ffe8ff 100%);color:#0b1220}
+  body.inverse .shape-path{stroke:#0b1220}
+  body.inverse .shape-text{fill:#0b1220}
+  body.inverse #staticNoise{opacity:0.06}
+
+  @media(max-width:640px){
+    .cyber-tv{width:300px;height:170px;bottom:90px} /* move down on mobile */
+    .icon-container{gap:46px;flex-direction:column}
+    .cursor{width:100px;height:100px}
+  }
+</style>
+</head>
+<body>
+
+<div id="stars"></div>
+<div id="staticNoise"></div>
+<div id="scanlines"></div>
+<div id="flickerBars"></div>
+
+<div class="wrap">
+  <div class="icon-container">
+    <button id="paintBtn" class="icon-btn" title="Paint (click 25x)">
+      <svg class="icon-svg" viewBox="0 0 64 80"><path class="shape-path outline-left slow-osc" d="M12 20 q20-20 40 0 v40 h-40z"/><path class="shape-path outline-right fast-osc" d="M12 20 q20-20 40 0 v40 h-40z"/><path class="shape-path" d="M12 20 q20-20 40 0 v40 h-40z"/><text class="shape-text" x="32" y="50">P</text></svg>
+    </button>
+    <button id="glueBtn" class="icon-btn" title="Glue (click 25x)">
+      <svg class="icon-svg" viewBox="0 0 64 80"><path class="shape-path outline-left slow-osc" d="M28 4h8v8h-8zM24 12h16v8H24zM20 20h24l2 32H18z"/><path class="shape-path outline-right fast-osc" d="M28 4h8v8h-8zM24 12h16v8H24zM20 20h24l2 32H18z"/><path class="shape-path" d="M28 4h8v8h-8zM24 12h16v8H24zM20 20h24l2 32H18z"/><text class="shape-text" x="32" y="66">G</text></svg>
+    </button>
+  </div>
+</div>
+
+<div class="cyber-tv" id="cyberTvWrap" aria-hidden="false">
+  <div class="tv-glow"></div>
+  <video id="cyberTv" src="MoshUp_0021~2.mp4" autoplay muted loop playsinline></video>
+  <div class="tv-noise"></div>
+  <div class="tv-scan"></div>
+  <div class="tv-reflect"></div>
+</div>
+
+<div class="worm-wrap" id="wormWrap" aria-hidden="false">
+  <div id="wormBtn" class="worm-btn" title="(secret)"></div>
+</div>
+
+<div id="confettiRoot"></div>
+
+<div class="cursor" id="cursor" aria-hidden="true">
+  <div class="ring"></div>
+  <div class="noise"></div>
+  <div class="glitchSlices"><div></div><div></div><div></div><div></div></div>
+</div>
+
+<div id="flash" class="flash-overlay"></div>
+<div id="burst" class="burst"></div>
+
+<!-- Audio playlist: will be controlled by JS -->
+<audio id="bgm" preload="auto"></audio>
+
+<script>
+// filenames (use exact names you've uploaded)
+const videoList = [
+  "MoshUp_0021~2.mp4",
+  "My Movie 51~2.mp4",
+  "My Movie 54.mov",
+  "IMG_3838.MOV"
+];
+const audioList = [
+  "BM AM & PM.m4a",
+  "Bleep.m4a",
+  "FB Remix.m4a",
+  "Frtruck.m4a"
+];
+
+// audio playlist logic
+const bgm = document.getElementById('bgm');
+let audioIndex = 0;
+bgm.src = audioList[audioIndex];
+bgm.volume = 0;
+bgm.muted = true;
+bgm.loop = false;
+bgm.preload = 'auto';
+
+bgm.addEventListener('ended', ()=>{
+  audioIndex = (audioIndex + 1) % audioList.length;
+  bgm.src = audioList[audioIndex];
+  bgm.play().catch(()=>{});
+});
+
+function fadeInAudio(){
+  if(!bgm) return;
+  if(!bgm.paused) return;
+  bgm.play().catch(()=>{});
+  bgm.muted = false;
+  let v = bgm.volume || 0;
+  const iv = setInterval(()=>{
+    v = Math.min(1, v + 0.05);
+    bgm.volume = v;
+    if(v >= 1) clearInterval(iv);
+  }, 120);
+}
+
+// ensure only first-interaction triggers unmute & fade
+let firstInteractionDone = false;
+function firstInteraction(){
+  if(firstInteractionDone) return;
+  firstInteractionDone = true;
+  fadeInAudio();
+  const cp = document.getElementById('click2play');
+  if(cp){ cp.style.animation = 'clickGlitch 0.8s forwards'; setTimeout(()=>cp.remove(),850); }
+  document.removeEventListener('click', firstInteraction);
+  document.removeEventListener('touchstart', firstInteraction);
+}
+document.addEventListener('click', firstInteraction);
+document.addEventListener('touchstart', firstInteraction, {passive:true});
+
+// Click2Play random ghost behavior
+(function(){
+  const cp = document.createElement('div');
+  cp.id = 'click2play';
+  cp.className = 'click2play-crt click2play-glitch';
+  cp.textContent = 'Click2Play';
+  document.body.appendChild(cp);
+  function randomPos(){
+    if(firstInteractionDone) return;
+    const safeTop = Math.random()*60 + 5;
+    const safeLeft = (Math.random()<0.5) ? Math.random()*22 : 78 + Math.random()*18;
+    cp.style.top = safeTop + '%';
+    cp.style.left = safeLeft + '%';
+    setTimeout(randomPos, 1600 + Math.random()*2000);
+  }
+  setTimeout(randomPos,900);
+})();
+
+// Stars
+(function makeStars(){
+  const root = document.getElementById('stars');
+  for(let i=0;i<120;i++){
+    const s = document.createElement('div');
+    s.className = 'star' + (Math.random()<0.35 ? ' tiny' : '');
+    s.style.left = Math.random()*100 + '%';
+    s.style.top = Math.random()*100 + '%';
+    s.style.opacity = 0.4 + Math.random()*0.6;
+    s.style.width = (Math.random()*1.6 + 0.6) + 'px';
+    s.style.height = s.style.width;
+    root.appendChild(s);
+    (function(st){
+      setInterval(()=>{
+        if(Math.random()<0.12) st.style.opacity = 0.3 + Math.random()*0.7;
+        const nl = (parseFloat(st.style.left) + (Math.random()-0.5)*0.6 + 100) % 100;
+        const nt = (parseFloat(st.style.top) + (Math.random()-0.5)*0.4 + 100) % 100;
+        st.style.left = nl + '%'; st.style.top = nt + '%';
+      }, 1600 + Math.random()*2400);
+    })(s);
+  }
+})();
+
+// Cursor follow
+const cursor = document.getElementById('cursor');
+document.addEventListener('mousemove', e=>{ cursor.style.left = e.clientX + 'px'; cursor.style.top = e.clientY + 'px'; });
+document.addEventListener('pointerdown', ()=>{ cursor.style.filter = 'blur(2px) hue-rotate(15deg) saturate(1.2)'; setTimeout(()=> cursor.style.filter = 'blur(6px)',120); });
+
+// Paint & Glue click counters
+let paintClicks = 0, glueClicks = 0;
+function triggerJolt(color){
+  const flash = document.getElementById('flash');
+  const burst = document.getElementById('burst');
+  flash.className = 'flash-overlay flash-' + color;
+  flash.style.opacity = 0.98;
+  burst.style.opacity = 0.9;
+  document.body.style.filter = 'contrast(1.14) saturate(1.25)';
+  setTimeout(()=>{ burst.style.opacity = 0; }, 300);
+  setTimeout(()=>{ flash.style.opacity = 0; document.body.style.filter = ''; }, 3000);
+}
+document.getElementById('paintBtn').addEventListener('click', ()=>{ paintClicks++; const btn=document.getElementById('paintBtn'); btn.style.transform='scale(0.98) translateY(-3px)'; setTimeout(()=> btn.style.transform='',120); if(paintClicks>=25){ paintClicks=0; triggerJolt('red'); } });
+document.getElementById('glueBtn').addEventListener('click', ()=>{ glueClicks++; const btn=document.getElementById('glueBtn'); btn.style.transform='scale(0.98) translateY(-3px)'; setTimeout(()=> btn.style.transform='',120); if(glueClicks>=25){ glueClicks=0; triggerJolt('blue'); } });
+
+// Worm egg + confetti
+const wormBtn = document.getElementById('wormBtn');
+let wormClicks = 0;
+wormBtn.addEventListener('click', e=>{ e.stopPropagation(); wormClicks++; wormBtn.style.transform='translateY(-2px)'; setTimeout(()=> wormBtn.style.transform='',80); if(wormClicks>=29){ wormClicks=0; spawnConfetti(e.clientX || window.innerWidth/2, e.clientY || window.innerHeight-60); } });
+function spawnConfetti(x,y){
+  const root = document.getElementById('confettiRoot'); const colors=['#00ff66','#ff2d95','#00d0ff','#ffd400']; const pieces=28;
+  for(let i=0;i<pieces;i++){ const d=document.createElement('div'); d.className='confetti-piece'; d.style.left=(x + (Math.random()-0.5)*140)+'px'; d.style.top=(y + (Math.random()-0.5)*40)+'px'; d.style.background=colors[Math.floor(Math.random()*colors.length)]; const size=6+Math.floor(Math.random()*8); d.style.width=size+'px'; d.style.height=(Math.random()>0.5?size:Math.max(3,size/2))+'px'; d.style.transform='rotate('+Math.floor(Math.random()*360)+'deg)'; root.appendChild(d); const dx=(Math.random()-0.5)*160; const dy=-120 - Math.random()*160; d.animate([{transform:'translateY(0) rotate(0)', opacity:1},{transform:`translate(${dx}px, ${dy}px) rotate(${Math.random()*720-360}deg)`, opacity:0.1}],{duration:900+Math.random()*700, easing:'cubic-bezier(.2,.8,.2,1)'}); setTimeout(()=> d.remove(),1600); }
+}
+
+// small micro-glitches
+setInterval(()=>{ document.querySelectorAll('.shape-text').forEach(t=>{ if(Math.random()<0.25){ t.classList.add('crackle'); setTimeout(()=> t.classList.remove('crackle'), 180+Math.random()*380); } }); }, 360);
+setInterval(()=>{ const s = document.getElementById('scanlines'); if(s) s.style.opacity=(0.16+Math.random()*0.14).toFixed(2); }, 90);
+setInterval(()=>{ if(Math.random()<0.25){ const b=document.getElementById('burst'); b.style.opacity=0.22; setTimeout(()=> b.style.opacity=0,120+Math.random()*180); } }, 700);
+
+// neon inverse toggle (M)
+document.addEventListener('keydown', e=>{ if(e.key.toLowerCase() === 'm'){ document.body.classList.toggle('inverse'); const f=document.getElementById('flash'); f.className='flash-overlay'; f.style.opacity=0.18; setTimeout(()=> f.style.opacity=0,160); } });
+
+// TV behavior: cycle videos on click (instant & glitchy)
+const cyberTv = document.getElementById('cyberTv');
+let videoIndex = 0;
+function setVideo(i){ videoIndex = (i + videoList.length) % videoList.length; cyberTv.pause(); cyberTv.src = videoList[videoIndex]; cyberTv.load(); cyberTv.play().catch(()=>{}); const wrap=document.getElementById('cyberTvWrap'); wrap.style.transform='translateX(-50%) scale(1.01)'; setTimeout(()=> wrap.style.transform='translateX(-50%)',120); }
+cyberTv.addEventListener('ended', ()=>{ cyberTv.play().catch(()=>{}); }); // keep looping current video
+document.getElementById('cyberTvWrap').addEventListener('click', (e)=>{ e.stopPropagation(); setVideo(videoIndex+1); const n = document.querySelector('.tv-noise'); if(n){ n.style.opacity = 0.32; setTimeout(()=> n.style.opacity = 0.12, 220); } });
+
+// image flash inside TV every 60s
+const flashImage = "PXL_20251023_140822882.jpg";
+function tvImageFlash(){ const tv = document.getElementById('cyberTvWrap'); const overlay = document.createElement('div'); overlay.style.position='absolute'; overlay.style.inset='0'; overlay.style.zIndex=95; overlay.style.pointerEvents='none'; overlay.style.backgroundImage=`url("${flashImage}")`; overlay.style.backgroundSize='cover'; overlay.style.backgroundPosition='center'; overlay.style.mixBlendMode='screen'; overlay.style.opacity='0'; overlay.style.transition='opacity .08s linear'; tv.appendChild(overlay); setTimeout(()=> overlay.style.opacity = 1, 20); const staticBurst = document.createElement('div'); staticBurst.style.position='absolute'; staticBurst.style.inset='0'; staticBurst.style.zIndex=96; staticBurst.style.background='repeating-linear-gradient(0deg, rgba(255,255,255,0.06) 0 1px, transparent 2px)'; staticBurst.style.mixBlendMode='overlay'; staticBurst.style.opacity='0.9'; tv.appendChild(staticBurst); setTimeout(()=>{ staticBurst.style.opacity = 0; overlay.style.opacity = 0; }, 420); setTimeout(()=>{ staticBurst.remove(); overlay.remove(); }, 900); }
+setInterval(tvImageFlash, 60000); // every 1 minute
+
+// ensure tv muted and autoplay
+cyberTv.muted = true;
+cyberTv.play().catch(()=>{});
+
+// Prevent touches from pausing audio/video
+document.addEventListener('touchstart', ()=>{}, {passive:true});
+
+// On load, ensure first video source set to index 0
+setVideo(0);
+</script>
+</body>
+</html>
