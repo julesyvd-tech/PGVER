@@ -3,248 +3,122 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Paint + Glue — CGE Fusion</title>
+<title>PGVER Roulette</title>
 <style>
-  :root{
-    --bg1:#000;
-    --bg2:#041226;
-    --bg3:#2b0038;
-    --matrix-green:#00ff66;
-    --tv-glow:rgba(0,255,102,0.06);
-  }
-
   html,body{
-    height:100%;
     margin:0;
-    background:linear-gradient(180deg,var(--bg1) 0%,var(--bg2) 35%,var(--bg3) 100%);
+    padding:0;
+    width:100%;
+    height:100%;
     overflow:hidden;
-    font-family:'VT323',monospace,Courier;
-    color:var(--matrix-green);
-    -webkit-font-smoothing:antialiased;
+    display:flex;
+    justify-content:center;
+    align-items:center;
   }
-
-  .wrap{position:relative;z-index:2;min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:28px;padding:40px}
-  .icon-container{display:flex;gap:120px;align-items:center;justify-content:center;z-index:6}
-  button.icon-btn{
-    width:140px;height:180px;display:block;position:relative;cursor:pointer;background:transparent;border:none;padding:0;
-    filter:drop-shadow(2px 2px 2px rgba(255,0,150,0.3)) drop-shadow(-2px -2px 2px rgba(0,255,255,0.3));
-    transition:filter .25s ease,transform .15s ease;
+  canvas#mainCanvas{
+    position:absolute;
+    top:0; left:0;
+    width:100%; height:100%;
+    z-index:-1;
   }
-  button.icon-btn:hover{
-    filter:drop-shadow(4px 4px 4px rgba(255,0,150,0.4)) drop-shadow(-4px -4px 4px rgba(0,255,255,0.4));
-    transform:translateY(-3px) scale(1.04);
+  .glitch::before,.glitch::after{
+    content:attr(data-text);
+    position:absolute; left:0; top:0; width:100%;
   }
-
-  svg.icon-svg{width:100%;height:100%;position:relative;z-index:6;overflow:visible}
-  .shape-path{fill:none;stroke:#fff;stroke-width:2.2;stroke-linejoin:round;stroke-linecap:round}
-  .shape-text{fill:#fff;font-weight:700;font-family:Courier,monospace;font-size:18px;dominant-baseline:middle;text-anchor:middle}
-  .outline-left{stroke:rgba(0,0,255,0.9);stroke-width:2.2;filter:blur(.6px);mix-blend-mode:screen;animation:oscLeft 2.6s infinite ease-in-out}
-  .outline-right{stroke:rgba(255,59,59,0.9);stroke-width:2.2;filter:blur(.6px);mix-blend-mode:screen;animation:oscRight 1.8s infinite ease-in-out}
-  @keyframes oscLeft{0%{transform:translateX(-3px)}50%{transform:translateX(2px)}100%{transform:translateX(-3px)}}
-  @keyframes oscRight{0%{transform:translateX(3px)}50%{transform:translateX(-2px)}100%{transform:translateX(3px)}}
-
-  #stars,#staticNoise,#scanlines,#flickerBars{position:fixed;inset:0;z-index:1;pointer-events:none}
-  .star{position:absolute;width:2px;height:2px;border-radius:50%;background:#fff;opacity:0.7;filter:drop-shadow(0 0 6px rgba(255,255,255,0.06));}
-
-  #staticNoise{background-image:radial-gradient(circle,rgba(255,255,255,0.05) 1px,transparent 1px);background-size:3px 3px;mix-blend-mode:overlay;animation:noiseShift .08s steps(2) infinite;opacity:0.2;}
-  @keyframes noiseShift{from{background-position:0 0;}to{background-position:6px 6px;}}
-  #scanlines{background:repeating-linear-gradient(to bottom,rgba(0,0,0,0.1) 0px,rgba(0,0,0,0.08) 1px,transparent 2px);mix-blend-mode:overlay;opacity:0.2;animation:scanMove 4s linear infinite;}
-  @keyframes scanMove{0%{background-position:0 0;}100%{background-position:0 8px;}}
-  #flickerBars{background:linear-gradient(0deg,rgba(255,255,255,0.02) 50%,transparent 50%);mix-blend-mode:overlay;animation:flickerFlash 2s infinite steps(2);opacity:0.15;}
-  @keyframes flickerFlash{0%,100%{opacity:0.12;}50%{opacity:0.18;}}
-
-  .tv-container{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);width:220px;height:150px;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,0.05);box-shadow:0 0 10px var(--tv-glow),inset 0 0 12px rgba(0,255,150,0.05);background:#000;z-index:5;}
-  .tv-video{width:100%;height:100%;object-fit:cover;filter:contrast(1.1) saturate(1.1) brightness(0.95);}
+  .glitch::before{
+    left:2px;text-shadow:-2px 0 red;
+    animation:glitchTop 2s infinite linear alternate-reverse;
+  }
+  .glitch::after{
+    left:-2px;text-shadow:-2px 0 cyan;
+    animation:glitchBottom 2s infinite linear alternate-reverse;
+  }
+  @keyframes glitchTop{0%{clip:rect(42px,9999px,44px,0)}50%{clip:rect(12px,9999px,90px,0)}100%{clip:rect(85px,9999px,140px,0)}}
+  @keyframes glitchBottom{0%{clip:rect(12px,9999px,50px,0)}50%{clip:rect(85px,9999px,140px,0)}100%{clip:rect(42px,9999px,44px,0)}}
 </style>
 </head>
 <body>
-<div id="stars"></div>
-<div id="staticNoise"></div>
-<div id="scanlines"></div>
-<div id="flickerBars"></div>
+<p id="loading">Rolling the PGVER dice...</p>
 
-<div class="wrap">
-  <div class="icon-container">
-    <!-- Paint Button -->
-    <button id="paintBtn" class="icon-btn" aria-label="Paint">
-      <svg class="icon-svg" viewBox="0 0 64 80" preserveAspectRatio="xMidYMid meet">
-        <path class="shape-path outline-left" d="M12 20 q20-20 40 0 v40 h-40z"/>
-        <path class="shape-path outline-right" d="M12 20 q20-20 40 0 v40 h-40z"/>
-        <path class="shape-path" d="M12 20 q20-20 40 0 v40 h-40z"/>
-        <text id="paintText" class="shape-text" x="32" y="50">P</text>
-      </svg>
-    </button>
+<!-- Templates for each theme -->
+<template id="cthulhu">
+  <style>
+    :root{--bg1:#0a0000;--bg2:#1a0000;--accent:#d60000;--text:#ffcccc;--font:'UnifrakturCook',cursive;}
+    body{background:radial-gradient(circle,var(--bg1),var(--bg2));color:var(--text);font-family:var(--font);overflow:hidden;}
+    .pg-logo{font-size:10vw;letter-spacing:0.05em;text-shadow:0 0 12px var(--accent),0 0 40px var(--accent);animation:flicker 2.5s infinite alternate;}
+    @keyframes flicker{0%,100%{opacity:1;filter:blur(0)}50%{opacity:0.6;filter:blur(1px) hue-rotate(10deg);}}
+    .nxt-btn{position:fixed;top:1rem;right:1rem;background:transparent;border:1px solid var(--accent);color:var(--text);font-family:monospace;padding:.4rem .8rem;cursor:pointer;text-transform:uppercase;letter-spacing:.1em;transition:.3s;}
+    .nxt-btn:hover{background:var(--accent);color:#000;}
+  </style>
+  <button class="nxt-btn" onclick="nextSong()">Nxt</button>
+  <div class="pg-logo glitch" data-text="PG">PG</div>
+  <canvas id="mainCanvas"></canvas>
+</template>
 
-    <!-- Glue Button -->
-    <button id="glueBtn" class="icon-btn" aria-label="Glue">
-      <svg class="icon-svg" viewBox="0 0 64 80" preserveAspectRatio="xMidYMid meet">
-        <path class="shape-path outline-left" d="M28 4h8v8h-8zM24 12h16v8H24zM20 20h24l2 32H18z"/>
-        <path class="shape-path outline-right" d="M28 4h8v8h-8zM24 12h16v8H24zM20 20h24l2 32H18z"/>
-        <path class="shape-path" d="M28 4h8v8h-8zM24 12h16v8H24zM20 20h24l2 32H18z"/>
-        <text id="glueText" class="shape-text" x="32" y="66">G</text>
-      </svg>
-    </button>
-  </div>
+<template id="metal">
+  <style>
+    :root{--bg1:#0d0d0f;--bg2:#1e1e23;--accent:#8fbaff;--text:#e0e0e0;--font:'Orbitron',sans-serif;}
+    body{background:linear-gradient(135deg,var(--bg1),var(--bg2));color:var(--text);font-family:var(--font);overflow:hidden;}
+    .pg-logo{font-size:10vw;letter-spacing:0.05em;background:linear-gradient(90deg,#bbb,#fff,#bbb);-webkit-background-clip:text;color:transparent;text-shadow:0 0 10px var(--accent);}
+    .nxt-btn{position:fixed;top:1rem;right:1rem;background:transparent;border:1px solid var(--accent);color:var(--text);font-family:monospace;padding:.4rem .8rem;cursor:pointer;text-transform:uppercase;letter-spacing:.1em;transition:.3s;}
+    .nxt-btn:hover{background:var(--accent);color:#000;}
+  </style>
+  <button class="nxt-btn" onclick="nextSong()">Nxt</button>
+  <div class="pg-logo glitch" data-text="PG">PG</div>
+  <canvas id="mainCanvas"></canvas>
+</template>
 
-  <div class="tv-container">
-    <video id="tvVideo" class="tv-video" autoplay muted loop playsinline>
-      <source src="MoshUp_0021~2.mp4" type="video/mp4">
-      Your browser does not support video playback.
-    </video>
-  </div>
+<template id="original">
+  <style>
+    :root{--bg1:#000;--bg2:#111;--accent:#ff00ff;--text:#fff;--font:'Courier New',monospace;}
+    body{background:linear-gradient(180deg,var(--bg1),var(--bg2));color:var(--text);font-family:var(--font);overflow:hidden;}
+    .pg-logo{font-size:10vw;letter-spacing:0.05em;color:var(--accent);text-shadow:0 0 20px var(--accent);}
+    .nxt-btn{position:fixed;top:1rem;right:1rem;background:transparent;border:1px solid var(--accent);color:var(--text);font-family:monospace;padding:.4rem .8rem;cursor:pointer;text-transform:uppercase;letter-spacing:.1em;transition:.3s;}
+    .nxt-btn:hover{background:var(--accent);color:#000;}
+  </style>
+  <button class="nxt-btn" onclick="nextSong()">Nxt</button>
+  <div class="pg-logo glitch" data-text="PG">PG</div>
+  <canvas id="mainCanvas"></canvas>
+</template>
 
-  <div id="worm" class="worm-btn" title="secret"></div>
-</div>
 <script>
-window.onload = () => {
-  const starField = document.getElementById("stars");
-  const paintBtn = document.getElementById("paintBtn");
-  const glueBtn = document.getElementById("glueBtn");
-  const worm = document.getElementById("worm");
-  const tv = document.getElementById("tvVideo");
+  // pick a random theme
+  const themes = ['cthulhu','metal','original'];
+  const pick = themes[Math.floor(Math.random()*themes.length)];
+  const tpl = document.getElementById(pick).content.cloneNode(true);
+  document.body.innerHTML = '';
+  document.body.appendChild(tpl);
 
-  /* === STARS === */
-  function makeStars(count=160){
-    for(let i=0;i<count;i++){
-      const s=document.createElement("div");
-      s.className="star";
-      s.style.left=Math.random()*100+"%";
-      s.style.top=Math.random()*100+"%";
-      s.style.opacity=Math.random()*0.6+0.2;
-      starField.appendChild(s);
-    }
-  }
-  makeStars();
-  function twinkle(){
-    document.querySelectorAll(".star").forEach(star=>{
-      if(Math.random()<0.05){
-        star.style.opacity=Math.random()*0.8+0.2;
-      }
-    });
-  }
-  setInterval(twinkle,400);
-
-  /* === PAINT / GLUE COLOR JOLTS === */
-  let paintClicks=0, glueClicks=0;
-  function joltColor(color){
-    const overlay=document.createElement("div");
-    overlay.style.position="fixed";
-    overlay.style.inset="0";
-    overlay.style.zIndex="99";
-    overlay.style.background=color==="red"
-      ? "rgba(255,0,60,0.2)"
-      : "rgba(60,120,255,0.25)";
-    overlay.style.transition="opacity .25s ease";
-    overlay.style.mixBlendMode="screen";
-    document.body.appendChild(overlay);
-    setTimeout(()=>overlay.style.opacity="0",200);
-    setTimeout(()=>overlay.remove(),600);
-  }
-  paintBtn.addEventListener("click",()=>{
-    paintClicks++;
-    if(paintClicks>=25){ joltColor("red"); paintClicks=0; }
-  });
-  glueBtn.addEventListener("click",()=>{
-    glueClicks++;
-    if(glueClicks>=25){ joltColor("blue"); glueClicks=0; }
-  });
-
-  /* === WORM CONFETTI === */
-  let wormClicks=0;
-  worm.addEventListener("click",()=>{
-    wormClicks++;
-    if(wormClicks>=29){ triggerConfetti(); wormClicks=0; }
-  });
-  function triggerConfetti(){
-    for(let i=0;i<50;i++){
-      const c=document.createElement("div");
-      c.style.position="fixed";
-      c.style.left=Math.random()*100+"%";
-      c.style.top=Math.random()*100+"%";
-      c.style.width="4px";
-      c.style.height="4px";
-      c.style.background=`hsl(${Math.random()*360},100%,70%)`;
-      c.style.zIndex="999";
-      c.style.pointerEvents="none";
-      document.body.appendChild(c);
-      setTimeout(()=>{
-        c.style.transition="transform 1s ease, opacity 1s ease";
-        c.style.transform=`translateY(${100+Math.random()*200}px) rotate(${Math.random()*360}deg)`;
-        c.style.opacity=0;
-      },50);
-      setTimeout(()=>c.remove(),1200);
-    }
-  }
-
-  /* === SUBTLE GLITCH PULSE === */
-  function glitchPulse(){
-    [paintBtn,glueBtn,worm].forEach(el=>{
-      if(Math.random()<0.15){
-        el.style.filter="drop-shadow(3px 3px 3px rgba(255,0,150,0.4)) drop-shadow(-3px -3px 3px rgba(0,255,255,0.4))";
-        setTimeout(()=>{
-          el.style.filter="drop-shadow(2px 2px 2px rgba(255,0,150,0.3)) drop-shadow(-2px -2px 2px rgba(0,255,255,0.3))";
-        },180);
-      }
-    });
-  }
-  setInterval(glitchPulse,800);
-    /* === TV VIDEO CYCLER + FLASH IMAGE === */
-  const videoFiles=[
-    "MoshUp_0021~2.mp4",
-    "My Movie 51~2.mp4",
-    "My Movie 54.mov",
-    "IMG_3838.MOV"
+  // shared JS
+  const songs = [
+    "assets/songs/track1.mp3",
+    "assets/songs/track2.mp3",
+    "assets/songs/track3.mp3"
   ];
-  let currentVideo=0;
-  function cycleVideo(){
-    currentVideo=(currentVideo+1)%videoFiles.length;
-    tv.src=videoFiles[currentVideo];
-    tv.play();
-  }
-  tv.addEventListener("click",cycleVideo);
+  let currentSong = 0;
+  let audio = new Audio(songs[currentSong]);
+  audio.loop = true;
+  audio.volume = 0.7;
+  audio.play();
 
-  /* flash image on TV every 60s */
-  const flashImg="PXL_20251023_140822882.jpg";
-  setInterval(()=>{
-    const img=document.createElement("img");
-    img.src=flashImg;
-    img.style.position="absolute";
-    img.style.left="0";img.style.top="0";
-    img.style.width="100%";img.style.height="100%";
-    img.style.objectFit="cover";
-    img.style.zIndex="10";
-    img.style.opacity="0";
-    img.style.transition="opacity .4s ease";
-    tv.parentElement.appendChild(img);
-    requestAnimationFrame(()=>img.style.opacity="1");
-    setTimeout(()=>img.style.opacity="0",400);
-    setTimeout(()=>img.remove(),900);
-  },60000);
-
-  /* === MUSIC LOOP === */
-  const tracks=[
-    "BM AM & PM.m4a",
-    "Bleep.m4a",
-    "FB Remix.m4a",
-    "Frtruck.m4a"
-  ];
-  let currentTrack=0;
-  const audio=new Audio(tracks[currentTrack]);
-  audio.volume=0.9;
-  audio.loop=false;
-  audio.autoplay=true;
-  audio.addEventListener("ended",()=>{
-    currentTrack=(currentTrack+1)%tracks.length;
-    audio.src=tracks[currentTrack];
+  function nextSong(){
+    currentSong = (currentSong+1)%songs.length;
+    audio.pause();
+    audio = new Audio(songs[currentSong]);
+    audio.loop = true;
+    audio.volume = 0.7;
     audio.play();
-  });
-  setTimeout(()=>audio.play(),1000);
+  }
 
-  /* prevent pause on touch */
-  document.body.addEventListener("click",()=>{
-    if(audio.paused) audio.play();
-  });
-  }; /* end window.onload */
+  // placeholder canvas logic – replace with your PGVER scripts
+  const c = document.getElementById("mainCanvas");
+  if(c){
+    const ctx = c.getContext("2d");
+    c.width = innerWidth;
+    c.height = innerHeight;
+    ctx.fillStyle = "rgba(255,255,255,0.05)";
+    setInterval(()=>ctx.fillRect(Math.random()*c.width,Math.random()*c.height,2,2),30);
+  }
 </script>
 </body>
 </html>
