@@ -3,122 +3,147 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>PGVER Roulette</title>
+<title>Paint + Glue — CGE Fusion</title>
 <style>
-  html,body{
-    margin:0;
-    padding:0;
-    width:100%;
-    height:100%;
-    overflow:hidden;
-    display:flex;
-    justify-content:center;
-    align-items:center;
+  :root {
+    --bg1: #000;
+    --bg2: #111;
+    --glitch1: #ff003c;
+    --glitch2: #00f0ff;
+    --text: #fff;
   }
-  canvas#mainCanvas{
-    position:absolute;
-    top:0; left:0;
-    width:100%; height:100%;
-    z-index:-1;
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: linear-gradient(135deg, var(--bg1), var(--bg2));
+    height: 100%;
+    font-family: 'Courier New', monospace;
+    overflow: hidden;
   }
-  .glitch::before,.glitch::after{
-    content:attr(data-text);
-    position:absolute; left:0; top:0; width:100%;
+
+  main {
+    position: relative;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: var(--text);
   }
-  .glitch::before{
-    left:2px;text-shadow:-2px 0 red;
-    animation:glitchTop 2s infinite linear alternate-reverse;
+
+  .glitch {
+    position: relative;
+    font-size: 10vw;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    animation: flicker 2s infinite;
   }
-  .glitch::after{
-    left:-2px;text-shadow:-2px 0 cyan;
-    animation:glitchBottom 2s infinite linear alternate-reverse;
+
+  .glitch::before,
+  .glitch::after {
+    content: attr(data-text);
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    overflow: hidden;
+    color: var(--text);
+    clip: rect(0, 0, 0, 0);
   }
-  @keyframes glitchTop{0%{clip:rect(42px,9999px,44px,0)}50%{clip:rect(12px,9999px,90px,0)}100%{clip:rect(85px,9999px,140px,0)}}
-  @keyframes glitchBottom{0%{clip:rect(12px,9999px,50px,0)}50%{clip:rect(85px,9999px,140px,0)}100%{clip:rect(42px,9999px,44px,0)}}
+
+  .glitch::before {
+    animation: glitchTop 2s infinite linear alternate-reverse;
+    color: var(--glitch1);
+  }
+
+  .glitch::after {
+    animation: glitchBot 1.8s infinite linear alternate-reverse;
+    color: var(--glitch2);
+  }
+
+  @keyframes glitchTop {
+    0% { clip: rect(0, 9999px, 0, 0); transform: translate(0); }
+    5% { clip: rect(5px, 9999px, 50px, 0); transform: translate(-3px, -3px); }
+    10% { clip: rect(80px, 9999px, 90px, 0); transform: translate(3px, 3px); }
+    15% { clip: rect(20px, 9999px, 30px, 0); transform: translate(-1px, 1px); }
+    20% { clip: rect(60px, 9999px, 80px, 0); transform: translate(2px, -2px); }
+    100% { clip: rect(0, 9999px, 0, 0); transform: translate(0); }
+  }
+
+  @keyframes glitchBot {
+    0% { clip: rect(0, 9999px, 0, 0); transform: translate(0); }
+    5% { clip: rect(55px, 9999px, 75px, 0); transform: translate(2px, 2px); }
+    10% { clip: rect(35px, 9999px, 60px, 0); transform: translate(-2px, -2px); }
+    15% { clip: rect(10px, 9999px, 25px, 0); transform: translate(1px, -1px); }
+    20% { clip: rect(80px, 9999px, 100px, 0); transform: translate(-3px, 3px); }
+    100% { clip: rect(0, 9999px, 0, 0); transform: translate(0); }
+  }
+
+  @keyframes flicker {
+    0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% { opacity: 1; }
+    20%, 24%, 55% { opacity: 0.5; }
+  }
+
+  canvas#pgCanvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    background: radial-gradient(circle, #000 60%, #111);
+    mix-blend-mode: lighten;
+  }
+
+  footer {
+    position: absolute;
+    bottom: 10px;
+    width: 100%;
+    text-align: center;
+    font-size: 0.9rem;
+    opacity: 0.6;
+    color: var(--text);
+  }
 </style>
 </head>
 <body>
-<p id="loading">Rolling the PGVER dice...</p>
+  <main>
+    <canvas id="pgCanvas"></canvas>
+    <div class="glitch" data-text="P+G">P+G</div>
+  </main>
+  <footer>
+    CGE Fusion © 2025
+  </footer>
 
-<!-- Templates for each theme -->
-<template id="cthulhu">
-  <style>
-    :root{--bg1:#0a0000;--bg2:#1a0000;--accent:#d60000;--text:#ffcccc;--font:'UnifrakturCook',cursive;}
-    body{background:radial-gradient(circle,var(--bg1),var(--bg2));color:var(--text);font-family:var(--font);overflow:hidden;}
-    .pg-logo{font-size:10vw;letter-spacing:0.05em;text-shadow:0 0 12px var(--accent),0 0 40px var(--accent);animation:flicker 2.5s infinite alternate;}
-    @keyframes flicker{0%,100%{opacity:1;filter:blur(0)}50%{opacity:0.6;filter:blur(1px) hue-rotate(10deg);}}
-    .nxt-btn{position:fixed;top:1rem;right:1rem;background:transparent;border:1px solid var(--accent);color:var(--text);font-family:monospace;padding:.4rem .8rem;cursor:pointer;text-transform:uppercase;letter-spacing:.1em;transition:.3s;}
-    .nxt-btn:hover{background:var(--accent);color:#000;}
-  </style>
-  <button class="nxt-btn" onclick="nextSong()">Nxt</button>
-  <div class="pg-logo glitch" data-text="PG">PG</div>
-  <canvas id="mainCanvas"></canvas>
-</template>
+  <script>
+    const canvas = document.getElementById('pgCanvas');
+    const ctx = canvas.getContext('2d');
+    resizeCanvas();
 
-<template id="metal">
-  <style>
-    :root{--bg1:#0d0d0f;--bg2:#1e1e23;--accent:#8fbaff;--text:#e0e0e0;--font:'Orbitron',sans-serif;}
-    body{background:linear-gradient(135deg,var(--bg1),var(--bg2));color:var(--text);font-family:var(--font);overflow:hidden;}
-    .pg-logo{font-size:10vw;letter-spacing:0.05em;background:linear-gradient(90deg,#bbb,#fff,#bbb);-webkit-background-clip:text;color:transparent;text-shadow:0 0 10px var(--accent);}
-    .nxt-btn{position:fixed;top:1rem;right:1rem;background:transparent;border:1px solid var(--accent);color:var(--text);font-family:monospace;padding:.4rem .8rem;cursor:pointer;text-transform:uppercase;letter-spacing:.1em;transition:.3s;}
-    .nxt-btn:hover{background:var(--accent);color:#000;}
-  </style>
-  <button class="nxt-btn" onclick="nextSong()">Nxt</button>
-  <div class="pg-logo glitch" data-text="PG">PG</div>
-  <canvas id="mainCanvas"></canvas>
-</template>
+    window.addEventListener('resize', resizeCanvas);
 
-<template id="original">
-  <style>
-    :root{--bg1:#000;--bg2:#111;--accent:#ff00ff;--text:#fff;--font:'Courier New',monospace;}
-    body{background:linear-gradient(180deg,var(--bg1),var(--bg2));color:var(--text);font-family:var(--font);overflow:hidden;}
-    .pg-logo{font-size:10vw;letter-spacing:0.05em;color:var(--accent);text-shadow:0 0 20px var(--accent);}
-    .nxt-btn{position:fixed;top:1rem;right:1rem;background:transparent;border:1px solid var(--accent);color:var(--text);font-family:monospace;padding:.4rem .8rem;cursor:pointer;text-transform:uppercase;letter-spacing:.1em;transition:.3s;}
-    .nxt-btn:hover{background:var(--accent);color:#000;}
-  </style>
-  <button class="nxt-btn" onclick="nextSong()">Nxt</button>
-  <div class="pg-logo glitch" data-text="PG">PG</div>
-  <canvas id="mainCanvas"></canvas>
-</template>
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
 
-<script>
-  // pick a random theme
-  const themes = ['cthulhu','metal','original'];
-  const pick = themes[Math.floor(Math.random()*themes.length)];
-  const tpl = document.getElementById(pick).content.cloneNode(true);
-  document.body.innerHTML = '';
-  document.body.appendChild(tpl);
-
-  // shared JS
-  const songs = [
-    "assets/songs/track1.mp3",
-    "assets/songs/track2.mp3",
-    "assets/songs/track3.mp3"
-  ];
-  let currentSong = 0;
-  let audio = new Audio(songs[currentSong]);
-  audio.loop = true;
-  audio.volume = 0.7;
-  audio.play();
-
-  function nextSong(){
-    currentSong = (currentSong+1)%songs.length;
-    audio.pause();
-    audio = new Audio(songs[currentSong]);
-    audio.loop = true;
-    audio.volume = 0.7;
-    audio.play();
-  }
-
-  // placeholder canvas logic – replace with your PGVER scripts
-  const c = document.getElementById("mainCanvas");
-  if(c){
-    const ctx = c.getContext("2d");
-    c.width = innerWidth;
-    c.height = innerHeight;
-    ctx.fillStyle = "rgba(255,255,255,0.05)";
-    setInterval(()=>ctx.fillRect(Math.random()*c.width,Math.random()*c.height,2,2),30);
-  }
-</script>
+    // Light animated pulse overlay
+    let t = 0;
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let i = 0; i < 50; i++) {
+        const x = Math.sin(t / 30 + i) * canvas.width / 3 + canvas.width / 2;
+        const y = Math.cos(t / 40 + i) * canvas.height / 3 + canvas.height / 2;
+        const r = 40 + 30 * Math.sin(t / 20 + i);
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(255,255,255,${0.03 + 0.02*Math.sin(i+t/10)})`;
+        ctx.stroke();
+      }
+      t += 0.8;
+      requestAnimationFrame(animate);
+    }
+    animate();
+  </script>
 </body>
 </html>
